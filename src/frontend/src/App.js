@@ -1,7 +1,8 @@
 // Final App.js
 
 import {useState, useEffect} from 'react'
-import {getAllStudents} from "./client";
+import {deleteStudent, getAllStudents} from "./client";
+import {errorNotification, successNotification} from "./Notification";
 import {
     Layout,
     Menu,
@@ -9,7 +10,7 @@ import {
     Table,
     Spin,
     Empty,
-    Button, Badge, Tag, Avatar,
+    Button, Badge, Tag, Avatar, Popconfirm,Radio
 } from 'antd';
 
 import {
@@ -36,9 +37,19 @@ const TheAvatar = ({name}) => {
     if(split.length === 1){
         return <Avatar>{name.charAt(0)}</Avatar>
     }
-    return <Avatar>`${name.charAt(0)}${name.charAt(name.length-1)}`</Avatar>
+    return <Avatar>
+        {`${name.charAt(0)}${name.charAt(name.length - 1)}`}
+    </Avatar>
 }
-const columns = [
+
+const removeStudent = (studentId, callback) => {
+    deleteStudent(studentId).then(() => {
+        successNotification( "Student deleted", `Student with id: ${studentId} was deleted`);
+        callback();
+    });
+}
+
+const columns = fetchStudents => [
     {
         title: '',
         dataIndex: 'avatar',
@@ -65,6 +76,22 @@ const columns = [
         dataIndex: 'gender',
         key: 'gender',
     },
+    {
+        title: 'Actions',
+        key: 'actions',
+        render: (text, student) =>
+            <Radio.Group>
+                <Popconfirm
+                    placement='topRight'
+                    title={`Are you sure to delete ${student.name}`}
+                    onConfirm={() => removeStudent(student.id, fetchStudents)}
+                    okText='Yes'
+                    cancelText='No'>
+                    <Radio.Button value="small">Delete</Radio.Button>
+                </Popconfirm>
+                <Radio.Button value="small">Edit</Radio.Button>
+            </Radio.Group>
+    }
 ];
 
 const antIcon = <LoadingOutlined style={{fontSize: 24}} spin/>;
@@ -82,7 +109,18 @@ function App() {
                 console.log(data);
                 setStudents(data);
                 setFetching(false);
-            })
+            }).catch(err => {
+                console.log(err.response)
+                err.response.json().then(res => {
+                    console.log(res);
+                    errorNotification(
+                        "There was an issue",
+                        `${res.message} [statusCode:${res.status}]`
+                        )
+                })
+        })
+
+
 
     useEffect(() => {
         console.log("component is mounted");
@@ -104,7 +142,7 @@ function App() {
             />
             <Table
                 dataSource={students}
-                columns={columns}
+                columns={columns(fetchStudents)}
                 bordered
                 title={() =>
                     <>
@@ -162,7 +200,7 @@ function App() {
                     {renderStudents()}
                 </div>
             </Content>
-            <Footer style={{textAlign: 'center'}}>By Brvnsk</Footer>
+            <Footer style={{textAlign: 'center'}}>By Brvnsk ©</Footer>
         </Layout>
     </Layout>
 }
